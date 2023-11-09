@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 
 
 # Cargar el conjunto de datos
-url = "https://archive.ics.uci.edu/ml/machine-learning-databases/forest-fires/forestfires.csv"
+url = ""# aca va el ds
 names = ['X', 'Y', 'month', 'day', 'FFMC', 'DMC', 'DC', 'ISI', 'temp', 'RH', 'wind', 'rain', 'area']
 data = pd.read_csv(url, names=names)
 
