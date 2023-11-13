@@ -27,7 +27,7 @@ for row_num, row in enumerate(dataframe_incendios.active.iter_rows(values_only=T
 
 # Filtro los datos del csv de clima por año
 weather_data = []
-with open('Cordoba 2000-01-02 to 2023-11-07.csv') as csv_file:
+with open('Cordoba 1990-01-01 to 2023-11-07.csv') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for row in csv_reader:
@@ -83,9 +83,25 @@ for dato_incendio in datos_incendios:
         'avg_wind_speed': dato_clima['avg_wind_speed'] if dato_clima is not None else "-",
     })
 
+
+min_total_hectareas_afectadas = min([dato['total_hectareas_afectadas'] for dato in datos_finales])
+max_total_hectareas_afectadas = max([dato['total_hectareas_afectadas'] for dato in datos_finales])
+
+# Clasifico cada registro de incendio en 3 categorias: bajo, medio y alto. Dependiende de la cantidad de hectareas afectadas de 0 a max_total_hectareas_afectadas en que tercio se encuentra
+for dato in datos_finales:
+    if dato['total_hectareas_afectadas'] <= (max_total_hectareas_afectadas / 3):
+        dato['riesgo_incendio'] = 'bajo'
+        dato['riesgo_incendio_encoded'] = 1
+    elif dato['total_hectareas_afectadas'] <= (max_total_hectareas_afectadas / 3) * 2:
+        dato['riesgo_incendio'] = 'medio'
+        dato['riesgo_incendio_encoded'] = 2
+    else:
+        dato['riesgo_incendio'] = 'alto'
+        dato['riesgo_incendio_encoded'] = 3
+
 # Exporto los datos finales a un csv
 with open('datos_finales.csv', 'w', newline="") as f:  # open('test.csv', 'w', newline="") for python 3
     c = csv.writer(f)
-    c.writerow(['anio', 'provincia', 'total_hectareas_afectadas', 'hectareas_bosques_nativos', 'hectareas_bosques_cultivados', 'hectareas_pastizal', 'avg_temp', 'avg_feel_temp', 'avg_humidity', 'avg_rain', 'avg_wind_speed'])
+    c.writerow(['anio', 'provincia', 'total_hectareas_afectadas', 'hectareas_bosques_nativos', 'hectareas_bosques_cultivados', 'hectareas_pastizal', 'avg_temp', 'avg_feel_temp', 'avg_humidity', 'avg_rain', 'avg_wind_speed', 'riesgo_incendio', 'riesgo_incendio_encoded'])
     for row in datos_finales:
-        c.writerow([row['anio'], row['provincia'], row['total_hectareas_afectadas'], row['hectareas_bosques_nativos'], row['hectareas_bosques_cultivados'], row['hectareas_pastizal'], row['avg_temp'], row['avg_feel_temp'], row['avg_humidity'], row['avg_rain'], row['avg_wind_speed']])
+        c.writerow([row['anio'], row['provincia'], row['total_hectareas_afectadas'], row['hectareas_bosques_nativos'], row['hectareas_bosques_cultivados'], row['hectareas_pastizal'], row['avg_temp'], row['avg_feel_temp'], row['avg_humidity'], row['avg_rain'], row['avg_wind_speed'], row['riesgo_incendio'], row['riesgo_incendio_encoded']])
