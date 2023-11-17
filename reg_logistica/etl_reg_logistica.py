@@ -3,105 +3,153 @@ import openpyxl
 import csv
 from datetime import datetime
 import numpy
+import numbers
 
 
-#  Filtro los datos del excel de incendios por provincia
-dataframe_incendios = openpyxl.load_workbook("superficie-incendiada-provincias-tipo-de-vegetacion_2022.xlsx")
+# Primero vamos a extraer del dataset sup_bosques_nativos_afectadas_por_mes_acumulado_98_19 el acumulado de hectareas quemadas por mes
+# Con estos datos vamos a calcular el porcentaje de hectareas quemadas por mes en relacion al total de hectareas quemadas en el año, 
+# para saber en que meses hay mayor probabilidad de que ocurran incendios
+total_hectareas_afectadas = 0
+datos_superficie_mes = []
+with open('reg_log_datasets/sup_bosques_nativos_afectadas_por_mes_acumulado_98_19.csv') as csv_file:
+    csv_reader = csv.reader(csv_file, delimiter=';')
+    line_count = 0
+    for row in csv_reader:
+        if line_count == 0:
+            line_count += 1
+            continue # Para el header no hago nada
+
+        total_hectareas_afectadas += int(row[2])
+        datos_superficie_mes.append({
+            'mes': line_count, # Los meses estan ordenados en el dataset
+            'total_hectareas_afectadas': int(row[2]),
+        })
+        line_count += 1
+
+# Calculo el porcentaje de hectareas quemadas por mes en relacion al total de hectareas quemadas en el año
+for mes in datos_superficie_mes:
+    mes['porcentaje'] = mes['total_hectareas_afectadas'] / total_hectareas_afectadas * 100
+
+print('Probabilidad de incendio por mes: ');
+for mes in datos_superficie_mes:
+    print('Mes: ', mes['mes'], ' - Porcentaje: ', "{:.2f}".format(mes['porcentaje']))
+print('\n')
+
+
+
+# Filtro los datos del excel de incendios por provincia == Córdoba
+dataframe_incendios = openpyxl.load_workbook("reg_log_datasets/superficie-incendiada-provincias-tipo-de-vegetacion_2022.xlsx")
 
 datos_incendios = []
-# Iterate the loop to read the cell values
 for row_num, row in enumerate(dataframe_incendios.active.iter_rows(values_only=True), start=1):
     if row_num == 1:
-        continue  # Skip the first row
+        continue  # Salteo el header
     if row[1] == "Córdoba":
         datos_incendios.append({
             'anio': row[0],
             'provincia': row[1],
-            'total_hectareas_afectadas': row[2],
-            'hectareas_bosques_nativos': row[3],
-            'hectareas_bosques_cultivados': row[4],
-            'hectareas_pastizal': row[6],
+            'total_hectareas_afectadas': row[2] if isinstance(row[2], numbers.Number) else 0,
+            'hectareas_bosques_nativos': row[3] if isinstance(row[3], numbers.Number) else 0,
+            'hectareas_bosques_cultivados': row[4] if isinstance(row[4], numbers.Number) else 0,
+            'hectareas_pastizal': row[6] if isinstance(row[6], numbers.Number) else 0,
+        })
+
+
+# Utilizando los porcentajes de hectareas quemadas por mes, divido los datos de incendio anuales
+# en datos de incendio mensuales. Utilizo solo los datos de BOSQUES NATIVOS
+datos_incendios_mes = []
+for dato_incendio in datos_incendios:
+    for mes in datos_superficie_mes:
+        datos_incendios_mes.append({
+            'anio_mes': str(dato_incendio['anio']) + '-' + str(mes['mes']),
+            'hectareas_bosques_nativos': dato_incendio['hectareas_bosques_nativos'] * (mes['porcentaje'] / 100),
         })
 
 
 
-# Filtro los datos del csv de clima por año
-weather_data = []
-with open('Cordoba 1990-01-01 to 2023-11-07.csv') as csv_file:
+# Agrupo los datos meteorologicos por año y mes
+datos_meteorologicos = []
+with open('reg_log_datasets/Cordoba 1990-01-01 to 2023-11-07.csv') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for row in csv_reader:
         if line_count == 0:
             line_count += 1
-            continue
+            continue # Salteo el header
         else:
             fecha = datetime.fromisoformat(row[1])
-            data_anio = next(filter(lambda x: x['anio'] == fecha.year, weather_data), None)
+            data_anio_mes = next(filter(lambda x: x['anio_mes'] == str(fecha.year) + '-' + str(fecha.month), datos_meteorologicos), None)
 
-            if data_anio is None:
-                data_anio = {
-                    'anio': fecha.year,
+            if data_anio_mes is None:
+                data_anio_mes = {
+                    'anio_mes': str(fecha.year) + '-' + str(fecha.month),
                     'registros': [],
                 }
-                weather_data.append(data_anio)
+                datos_meteorologicos.append(data_anio_mes)
 
-            data_anio['registros'].append(row)
-
+            data_anio_mes['registros'].append(row)
             line_count += 1
 
-# Por cada registro de clima anual, calculo los promedios de temperatura, sensacion termica, humedad, lluvia y velocidad del viento
-for data_anio in weather_data:
-    data_anio['registros'] = list(filter(lambda x: x[4] != '', data_anio['registros']))
-
-    data_anio['registros_count'] = len(data_anio['registros'])
-    data_anio['avg_temp'] = numpy.mean([float(registro[4]) for registro in data_anio['registros']])
-    data_anio['avg_feel_temp'] = numpy.mean([float(registro[7]) for registro in data_anio['registros']])
-    data_anio['avg_humidity'] = numpy.mean([float(registro[9]) for registro in data_anio['registros']])
-    data_anio['avg_rain'] = numpy.mean([float(registro[10]) for registro in data_anio['registros']])
-    data_anio['avg_wind_speed'] = numpy.mean([float(registro[17]) for registro in data_anio['registros']])
 
 
+# Por cada mes calculo el promedio diario de temperatura, humedad, lluvia y velocidad del viento
+for data_anio_mes in datos_meteorologicos:
+    # Hay muy pocos registros que no tienen informacion, los filtro
+    data_anio_mes['registros'] = list(filter(lambda x: x[4] != '', data_anio_mes['registros']))
 
-# Combino los datos de incendios con los datos del clima
+    data_anio_mes['registros_count'] = len(data_anio_mes['registros'])
+    data_anio_mes['avg_temp'] = numpy.mean([float(registro[4]) for registro in data_anio_mes['registros']])
+    data_anio_mes['avg_humidity'] = numpy.mean([float(registro[9]) for registro in data_anio_mes['registros']])
+    data_anio_mes['avg_rain'] = numpy.mean([float(registro[10]) for registro in data_anio_mes['registros']])
+    data_anio_mes['avg_wind_speed'] = numpy.mean([float(registro[17]) for registro in data_anio_mes['registros']])
+
+
+
+
+# Combino los datos de incendios mensuales con los datos del clima
 datos_finales = []
-
-for dato_incendio in datos_incendios:
-    dato_clima = next(filter(lambda x: x['anio'] == dato_incendio['anio'], weather_data), None)
+for dato_incendio_mes in datos_incendios_mes:
+    dato_meteorologico = next(filter(lambda x: x['anio_mes'] == dato_incendio_mes['anio_mes'], datos_meteorologicos), None)
 
     datos_finales.append({
-        'anio': dato_incendio['anio'],
-        'provincia': dato_incendio['provincia'],
-        'total_hectareas_afectadas': dato_incendio['total_hectareas_afectadas'],
-        'hectareas_bosques_nativos': dato_incendio['hectareas_bosques_nativos'],
-        'hectareas_bosques_cultivados': dato_incendio['hectareas_bosques_cultivados'],
-        'hectareas_pastizal': dato_incendio['hectareas_pastizal'],
-        #'registros_count': dato_clima['registros_count'],
-        'avg_temp': dato_clima['avg_temp'] if dato_clima is not None else "-",
-        'avg_feel_temp': dato_clima['avg_feel_temp'] if dato_clima is not None else "-",
-        'avg_humidity': dato_clima['avg_humidity'] if dato_clima is not None else "-",
-        'avg_rain': dato_clima['avg_rain'] if dato_clima is not None else "-",
-        'avg_wind_speed': dato_clima['avg_wind_speed'] if dato_clima is not None else "-",
+        'anio_mes': dato_incendio_mes['anio_mes'],
+        'hectareas_bosques_nativos': dato_incendio_mes['hectareas_bosques_nativos'],
+        'avg_temp': dato_meteorologico['avg_temp'],
+        'avg_humidity': dato_meteorologico['avg_humidity'],
+        'avg_rain': dato_meteorologico['avg_rain'],
+        'avg_wind_speed': dato_meteorologico['avg_wind_speed'],
     })
 
 
-min_total_hectareas_afectadas = min([dato['total_hectareas_afectadas'] for dato in datos_finales])
-max_total_hectareas_afectadas = max([dato['total_hectareas_afectadas'] for dato in datos_finales])
+# Clasifico cada anio_mes en riesgo de incendio bajo, medio o alto
+hectareas_quemadas = [dato['hectareas_bosques_nativos'] for dato in datos_finales]
+hectareas_quemadas.sort()
 
-# Clasifico cada registro de incendio en 3 categorias: bajo, medio y alto. Dependiende de la cantidad de hectareas afectadas de 0 a max_total_hectareas_afectadas en que tercio se encuentra
+# Calculo el percentil 33 y 66 para saber el rango de hectareas quemadas que se considera bajo, medio y alto
+percentil_33 = numpy.percentile(hectareas_quemadas, 33)
+percentil_66 = numpy.percentile(hectareas_quemadas, 66)
+
 for dato in datos_finales:
-    if dato['total_hectareas_afectadas'] <= (max_total_hectareas_afectadas / 3):
+    if dato['hectareas_bosques_nativos'] <= percentil_33:
         dato['riesgo_incendio'] = 'bajo'
-        dato['riesgo_incendio_encoded'] = 1
-    elif dato['total_hectareas_afectadas'] <= (max_total_hectareas_afectadas / 3) * 2:
+        dato['riesgo_incendio_num'] = 1
+    elif dato['hectareas_bosques_nativos'] > percentil_33 and dato['hectareas_bosques_nativos'] <= percentil_66:
         dato['riesgo_incendio'] = 'medio'
-        dato['riesgo_incendio_encoded'] = 2
+        dato['riesgo_incendio_num'] = 2
     else:
         dato['riesgo_incendio'] = 'alto'
-        dato['riesgo_incendio_encoded'] = 3
+        dato['riesgo_incendio_num'] = 3
 
-# Exporto los datos finales a un csv
-with open('datos_finales.csv', 'w', newline="") as f:  # open('test.csv', 'w', newline="") for python 3
+
+print('Cantidad de bajos: ', len(list(filter(lambda x: x['riesgo_incendio'] == 'bajo', datos_finales))))
+print('Cantidad de medios: ', len(list(filter(lambda x: x['riesgo_incendio'] == 'medio', datos_finales))))
+print('Cantidad de altos: ', len(list(filter(lambda x: x['riesgo_incendio'] == 'alto', datos_finales))))
+
+
+# Guardo los datos finales en un csv
+with open('etl_datos_finales_reg_logistica.csv', 'w', newline="") as f:  # open('test.csv', 'w', newline="") for python 3
     c = csv.writer(f)
-    c.writerow(['anio', 'provincia', 'total_hectareas_afectadas', 'hectareas_bosques_nativos', 'hectareas_bosques_cultivados', 'hectareas_pastizal', 'avg_temp', 'avg_feel_temp', 'avg_humidity', 'avg_rain', 'avg_wind_speed', 'riesgo_incendio', 'riesgo_incendio_encoded'])
-    for row in datos_finales:
-        c.writerow([row['anio'], row['provincia'], row['total_hectareas_afectadas'], row['hectareas_bosques_nativos'], row['hectareas_bosques_cultivados'], row['hectareas_pastizal'], row['avg_temp'], row['avg_feel_temp'], row['avg_humidity'], row['avg_rain'], row['avg_wind_speed'], row['riesgo_incendio'], row['riesgo_incendio_encoded']])
+    c.writerow(['anio_mes', 'hectareas_bosques_nativos', 'avg_temp', 'avg_humidity', 'avg_rain', 'avg_wind_speed', 'riesgo_incendio', 'riesgo_incendio_num'])
+    for dato in datos_finales:
+        c.writerow([dato['anio_mes'], dato['hectareas_bosques_nativos'], dato['avg_temp'], dato['avg_humidity'], dato['avg_rain'], dato['avg_wind_speed'], dato['riesgo_incendio'], dato['riesgo_incendio_num']])
+
