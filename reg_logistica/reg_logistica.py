@@ -24,9 +24,11 @@ with open('etl_datos_finales_reg_logistica.csv') as csv_file:
                 float(row[3]),
                 float(row[4]),
                 float(row[5]),
+                float(row[6]),
+                float(row[7]),
             ])
 
-            y.append(float(row[7]))
+            y.append(float(row[9]))
 
             line_count += 1
 
@@ -34,8 +36,11 @@ with open('etl_datos_finales_reg_logistica.csv') as csv_file:
 # Entreno el modelo 1000 veces y calculo el error cuadratico medio en cada iteracion
 mean_squared_errors = []
 for i in range(1000):
+    if i % 10 == 0:
+        print(int(i / 10), '%')
+
     # Particiono el dataset, 70% para entrenamiento y 30% para test
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.10, random_state=None)
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.20, random_state=None)
 
     # Entreno el modelo con el dataset de entrenamiento
     model = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=10000)
@@ -48,11 +53,6 @@ for i in range(1000):
     # Calculo el error cuadratico medio para ver que tan bien predice el modelo
     mse = mean_squared_error(y_test, y_pred)
     mean_squared_errors.append(mse)
-    # print('Mean Squared Error: ', mse)
-
-    # print('y_test vs y_pred')
-    # for i in range(len(y_test)):
-    #     print(y_test[i], y_pred[i])
 
 
 # Calculo el promedio de los errores cuadraticos medios

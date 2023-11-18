@@ -99,6 +99,8 @@ for data_anio_mes in datos_meteorologicos:
 
     data_anio_mes['registros_count'] = len(data_anio_mes['registros'])
     data_anio_mes['avg_temp'] = numpy.mean([float(registro[4]) for registro in data_anio_mes['registros']])
+    data_anio_mes['avg_min_temp'] = numpy.mean([float(registro[3]) for registro in data_anio_mes['registros']])
+    data_anio_mes['avg_max_temp'] = numpy.mean([float(registro[2]) for registro in data_anio_mes['registros']])
     data_anio_mes['avg_humidity'] = numpy.mean([float(registro[9]) for registro in data_anio_mes['registros']])
     data_anio_mes['avg_rain'] = numpy.mean([float(registro[10]) for registro in data_anio_mes['registros']])
     data_anio_mes['avg_wind_speed'] = numpy.mean([float(registro[17]) for registro in data_anio_mes['registros']])
@@ -115,6 +117,8 @@ for dato_incendio_mes in datos_incendios_mes:
         'anio_mes': dato_incendio_mes['anio_mes'],
         'hectareas_bosques_nativos': dato_incendio_mes['hectareas_bosques_nativos'],
         'avg_temp': dato_meteorologico['avg_temp'],
+        'avg_min_temp': dato_meteorologico['avg_min_temp'],
+        'avg_max_temp': dato_meteorologico['avg_max_temp'],        
         'avg_humidity': dato_meteorologico['avg_humidity'],
         'avg_rain': dato_meteorologico['avg_rain'],
         'avg_wind_speed': dato_meteorologico['avg_wind_speed'],
@@ -149,7 +153,7 @@ print('Cantidad de altos: ', len(list(filter(lambda x: x['riesgo_incendio'] == '
 # Guardo los datos finales en un csv
 with open('etl_datos_finales_reg_logistica.csv', 'w', newline="") as f:  # open('test.csv', 'w', newline="") for python 3
     c = csv.writer(f)
-    c.writerow(['anio_mes', 'hectareas_bosques_nativos', 'avg_temp', 'avg_humidity', 'avg_rain', 'avg_wind_speed', 'riesgo_incendio', 'riesgo_incendio_num'])
+    c.writerow(['anio_mes', 'hectareas_bosques_nativos', 'avg_temp', 'avg_min_temp', 'avg_max_temp', 'avg_humidity', 'avg_rain', 'avg_wind_speed', 'riesgo_incendio', 'riesgo_incendio_num'])
     for dato in datos_finales:
-        c.writerow([dato['anio_mes'], dato['hectareas_bosques_nativos'], dato['avg_temp'], dato['avg_humidity'], dato['avg_rain'], dato['avg_wind_speed'], dato['riesgo_incendio'], dato['riesgo_incendio_num']])
+        c.writerow([dato['anio_mes'], dato['hectareas_bosques_nativos'], dato['avg_temp'], dato['avg_min_temp'], dato['avg_max_temp'], dato['avg_humidity'], dato['avg_rain'], dato['avg_wind_speed'], dato['riesgo_incendio'], dato['riesgo_incendio_num']])
 
