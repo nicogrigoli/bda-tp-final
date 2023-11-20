@@ -7,8 +7,8 @@ import numbers
 from decimal import Decimal, getcontext
 
 #Aca se configuran los limites de los parametros de temperatura, humedad, precipitaciones y velocidad del viento
-TEMPERATURA_MAXIMA = 25 #En grados celsius
-HUMEDAD = 60 #En porcentaje
+TEMPERATURA_MAXIMA = 30 #En grados celsius
+HUMEDAD = 40 #En porcentaje
 PRECIPITACIONES = 2 #Milimetros
 VELOCIDAD_VIENTO = 35 #Km/hs
 
@@ -97,21 +97,17 @@ for contadores_x_mes in contadores_meteorologicos:
     factor_viento = round(contadores_x_mes['velocidad_viento_count'] / contadores_x_mes['cantidad_dias_count'],2)
 
 
-    #Si el factor da 0 lo reemplazo por 1 para que no impacte sobre el calculo de indice de probabilidad (Es como si se estuviera omitiendo)
-    factor_humedad_calc = factor_humedad if factor_humedad != 0 else 1
-    factor_temperatura_calc = factor_temperatura if factor_temperatura != 0 else 1
-    factor_precipitaciones_calc = factor_precipitaciones if factor_precipitaciones != 0 else 1
-    factor_viento_calc = factor_viento if factor_viento != 0 else 1
+    #Si alguno de los factores es 0 no se puede calcular indice
+    if factor_temperatura == 0 or factor_humedad == 0 or factor_precipitaciones == 0 or factor_viento == 0:
+        continue
 
     #Algunos valores decimales son muy chicos con lo cual es necesario utilizar la libreria decimal.
     #Seteo la precision que van a tener los decimales
     getcontext().prec = 20
     #Los transformo a decimal y los multiplico para sacar el indice de probabilidad     
-    indice_probabilidad = (PONDERACION_TEMPERATURA * Decimal(factor_temperatura_calc)) + (PONDERACION_HUMEDAD * Decimal(factor_humedad_calc)) + (PONDERACION_PRECIPITACION * Decimal(factor_precipitaciones_calc)) + (PONDERACION_VIENTO * Decimal(factor_viento_calc))
+    indice_probabilidad = (PONDERACION_TEMPERATURA * Decimal(factor_temperatura)) + (PONDERACION_HUMEDAD * Decimal(factor_humedad)) + (PONDERACION_PRECIPITACION * Decimal(factor_precipitaciones)) + (PONDERACION_VIENTO * Decimal(factor_viento))
 
-    #Si todos los factores son 0 se lo considera un dato erroneo, se setea la probabilidad en 0
-    if factor_temperatura_calc == 1 and factor_humedad_calc == 1 and factor_precipitaciones_calc == 1 and factor_viento_calc == 1:
-        indice_probabilidad = 0.0000
+
 
     #Se redondea el indice de probabilidad con una precision de 4 decimales.
     indice_incedio = round(indice_probabilidad,4)

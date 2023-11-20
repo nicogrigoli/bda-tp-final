@@ -14,10 +14,10 @@ X = X.drop('fecha', axis=1)
 y = data['indice_incendio']
 
 # Dividir el dataset en conjuntos de entrenamiento y prueba
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=None)
 
 # Crear y entrenar el modelo RandomForestRegressor
-regression_model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
+regression_model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=None)
 regression_model.fit(X_train, y_train)
 
 # Realizar predicciones en el conjunto de entrenamiento
@@ -33,7 +33,7 @@ r2_train = r2_score(y_train, y_train_pred)
 # Realizar predicciones en el conjunto de prueba
 y_test_pred = regression_model.predict(X_test)
 
-print('predicciones en el conjunto de entrenamiento')
+print('predicciones en el conjunto de prueba')
 print(y_test_pred)
 
 # Calcular el error cuadrático medio (MSE) y el coeficiente de determinación (R^2) en el conjunto de prueba
