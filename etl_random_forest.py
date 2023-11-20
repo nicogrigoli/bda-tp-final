@@ -8,9 +8,15 @@ from decimal import Decimal, getcontext
 
 #Aca se configuran los limites de los parametros de temperatura, humedad, precipitaciones y velocidad del viento
 TEMPERATURA_MAXIMA = 25 #En grados celsius
-HUMEDAD = 10 #En porcentaje
+HUMEDAD = 60 #En porcentaje
 PRECIPITACIONES = 2 #Milimetros
 VELOCIDAD_VIENTO = 35 #Km/hs
+
+#PONDERACIONES
+PONDERACION_VIENTO = Decimal(0.10)
+PONDERACION_PRECIPITACION = Decimal(0.35)  
+PONDERACION_HUMEDAD = Decimal(0.20)
+PONDERACION_TEMPERATURA = Decimal(0.35)
 
 contadores_meteorologicos = []
 # Comienzo a leer el dataset para contabilizar los dias con humedad, temperatura, viento y precipitaciones segun los limites definidos en las constantes.
@@ -101,7 +107,7 @@ for contadores_x_mes in contadores_meteorologicos:
     #Seteo la precision que van a tener los decimales
     getcontext().prec = 20
     #Los transformo a decimal y los multiplico para sacar el indice de probabilidad     
-    indice_probabilidad = Decimal(factor_temperatura_calc) * Decimal(factor_humedad_calc) * Decimal(factor_precipitaciones_calc) * Decimal(factor_viento_calc)
+    indice_probabilidad = (PONDERACION_TEMPERATURA * Decimal(factor_temperatura_calc)) + (PONDERACION_HUMEDAD * Decimal(factor_humedad_calc)) + (PONDERACION_PRECIPITACION * Decimal(factor_precipitaciones_calc)) + (PONDERACION_VIENTO * Decimal(factor_viento_calc))
 
     #Si todos los factores son 0 se lo considera un dato erroneo, se setea la probabilidad en 0
     if factor_temperatura_calc == 1 and factor_humedad_calc == 1 and factor_precipitaciones_calc == 1 and factor_viento_calc == 1:
@@ -117,9 +123,8 @@ for contadores_x_mes in contadores_meteorologicos:
         'factor_humedad' : factor_humedad,
         'factor_precipitaciones' : factor_precipitaciones,
         'factor_viento' : factor_viento,
-        'indice_incendio' : indice_incedio,
-        'porcentaje_incendio' : Decimal(indice_incedio * 100)
-    }
+        'indice_incendio' : indice_incedio
+   }
 
     #Se guarda el objeto datos en datos_finales
     datos_finales.append(datos)
@@ -127,9 +132,9 @@ for contadores_x_mes in contadores_meteorologicos:
 #Aca se escriben los datos en un nuevo archivo .csv
 with open('datasets/ETL/random-forest/etl_datos_finales_random_forest.csv', 'w', newline="") as f:  # open('test.csv', 'w', newline="") for python 3
     c = csv.writer(f)
-    c.writerow(['fecha', 'factor_temperatura', 'factor_humedad', 'factor_precipitaciones', 'factor_viento', 'indice_incendio','porcentaje_incendio'])
+    c.writerow(['fecha', 'factor_temperatura', 'factor_humedad', 'factor_precipitaciones', 'factor_viento', 'indice_incendio'])
     for dato in datos_finales:
-        c.writerow([dato['fecha'], dato['factor_temperatura'], dato['factor_humedad'], dato['factor_precipitaciones'], dato['factor_viento'], str(dato['indice_incendio']).replace('.',','), str(dato['porcentaje_incendio']).replace('.',',')])
+        c.writerow([dato['fecha'], dato['factor_temperatura'], dato['factor_humedad'], dato['factor_precipitaciones'], dato['factor_viento'], dato['indice_incendio']])
 
 
 
