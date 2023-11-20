@@ -1,66 +1,58 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
-import seaborn as sns
 
+# Cargar el dataset .csv
+data = pd.read_csv('datasets/ETL/random-forest/etl_datos_finales_random_forest.csv')
 
+# Preparar los datos para el entrenamiento del modelo
+# (Este paso depende del dataset específico que estés utilizando)
+X = data.drop('indice_incendio', axis=1)
+X = X.drop('fecha', axis=1)
+y = data['indice_incendio']
 
-# Asumimos que ya tienes los datos en un archivo CSV
-dataClima = pd.read_csv('DatosPruebaInventados.csv')
+# Dividir el dataset en conjuntos de entrenamiento y prueba
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=None)
 
+# Crear y entrenar el modelo RandomForestRegressor
+regression_model = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=None)
+regression_model.fit(X_train, y_train)
 
-dataClima.head()
-dataClima.info()
-dataClima.describe()
+# Realizar predicciones en el conjunto de entrenamiento
+y_train_pred = regression_model.predict(X_train)
 
+print('predicciones en el conjunto de entrenamiento')
+print(y_train_pred)
 
-# Selecciona las características y la variable objetivo
-X = dataClima.drop('foco_incendio', axis=1)
-#X = dataClima.drop('DIA_TRANSPORTE', axis=1)
-y = dataClima['foco_incendio'] # VARIABLE A PREDECIR
+# Calcular el error cuadrático medio (MSE) y el coeficiente de determinación (R^2) en el conjunto de entrenamiento
+mse_train = mean_squared_error(y_train, y_train_pred)
+r2_train = r2_score(y_train, y_train_pred)
 
-# Dividir los datos en entrenamiento y prueba
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Realizar predicciones en el conjunto de prueba
+y_test_pred = regression_model.predict(X_test)
 
+print('predicciones en el conjunto de prueba')
+print(y_test_pred)
 
-# Crea un modelo de random forest
-model = RandomForestClassifier(n_estimators=100, random_state=42)
+# Calcular el error cuadrático medio (MSE) y el coeficiente de determinación (R^2) en el conjunto de prueba
+mse_test = mean_squared_error(y_test, y_test_pred)
+r2_test = r2_score(y_test, y_test_pred)
 
-# Entrena el modelo con los datos de entrenamiento
-model.fit(X_train, y_train)
+print('Error cuadrático medio en el conjunto de entrenamiento:', mse_train)
+print('Error cuadrático medio en el conjunto de prueba:', mse_test)
+print('Coeficiente de determinación en el conjunto de entrenamiento:', r2_train)
+print('Coeficiente de determinación en el conjunto de prueba:', r2_test)
 
-
-# Realiza predicciones sobre los datos de prueba
-y_pred = model.predict(X_test)
-
-print("Valores predichos:")
-print(y_pred)
-print("Nombres de las clases: ", model.classes_)
-
-
-y_pred_new = model.predict(X)
-
-print("Valores predichos nuevos:")
-print(y_pred_new)
-print("Nombres de las clases: ", model.classes_)
-
-# Calcula la precisión del modelo
-accuracy = accuracy_score(y_test, y_pred)
-print('Precisión: ', accuracy)
-
-# Muestra la matriz de confusión
-cm = confusion_matrix(y_test, y_pred)
-print('Matriz de confusión: \n', cm)
-
-# Muestra el informe de clasificación
-cr = classification_report(y_test, y_pred)
-print('Informe de clasificación: \n', cr)
-
-#sns.pairplot(dataClima)
-
-sns.lmplot(x='mes_precipitaciones', y='temperatura', hue="foco_incendio", data=dataClima)
+# Graficar los resultados
+plt.figure(figsize=(12, 6))
+plt.scatter(y_test, y_test_pred, color='blue', label='Prueba')
+plt.scatter(y_train, y_train_pred, color='red', label='Entrenamiento')
+plt.legend()
+plt.xlabel('Valores reales')
+plt.ylabel('Valores predichos')
+plt.title('Gráfico de valores reales vs valores predichos')
 plt.show()
 
 #https://www.youtube.com/watch?v=OJ6hF5ZUSuo&t=768s
