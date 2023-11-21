@@ -3,12 +3,25 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Cargar el dataset .csv
 data = pd.read_csv('datasets/ETL/random-forest/etl_datos_finales_random_forest.csv')
 
 # Preparar los datos para el entrenamiento del modelo
 # (Este paso depende del dataset específico que estés utilizando)
+
+
+
+# Separar el string 'date_time' en una lista de strings
+data[['mes','anio']] = data['fecha'].str.split('-', expand=True)
+
+# Convertir la columna 'date' en valores enteros
+data['mes'] = data['mes'].astype(int)
+
+# Convertir la columna 'time' en valores enteros
+data['anio'] = data['anio'].astype(int)
+
 X = data.drop('indice_incendio', axis=1)
 X = X.drop('fecha', axis=1)
 y = data['indice_incendio']
@@ -44,6 +57,43 @@ print('Error cuadrático medio en el conjunto de entrenamiento:', mse_train)
 print('Error cuadrático medio en el conjunto de prueba:', mse_test)
 print('Coeficiente de determinación en el conjunto de entrenamiento:', r2_train)
 print('Coeficiente de determinación en el conjunto de prueba:', r2_test)
+
+
+
+df = pd.DataFrame(X_test)
+df['date_year'] = df['mes'].astype(str) + '-' + df['anio'].astype(str)
+
+# Convertir la columna 'date_year' a datetime
+df['date_year'] = pd.to_datetime(df['date_year'], format='%m-%Y')
+
+# Cambiar el formato de la columna 'date' a 'YYYY-MM'
+df['date_year'] = df['date_year'].dt.strftime('%Y-%m')
+
+# Ordenar la columna 'date_year'
+df = df.sort_values('date_year')
+
+df['date_year'] = df['date_year'].astype(str)
+
+# Crear el gráfico de líneas múltiples
+plt.figure(figsize=(10, 6))
+
+plt.plot(df['date_year'], df['factor_temperatura'], label='Temperatura', marker='o')
+plt.plot(df['date_year'], df['factor_humedad'], label='Baja humedad', marker='o')
+plt.plot(df['date_year'], df['factor_precipitaciones'], label='Baja precipitación', marker='o')
+plt.plot(df['date_year'], y_test, label='Incendios', marker='o')
+
+# Configurar el eje x para que muestre las fechas de manera legible
+plt.xticks(rotation=45)
+plt.xlabel('Fechas x mes')
+
+# Configurar etiquetas y leyenda
+plt.ylabel('Variables')
+plt.title('Indice de incendios en funcion del tiempo')
+plt.legend()
+
+# Mostrar el gráfico
+plt.tight_layout()
+plt.show()
 
 # Graficar los resultados
 plt.figure(figsize=(12, 6))

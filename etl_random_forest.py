@@ -8,7 +8,7 @@ from decimal import Decimal, getcontext
 
 #Aca se configuran los limites de los parametros de temperatura, humedad, precipitaciones y velocidad del viento
 TEMPERATURA_MAXIMA = 30 #En grados celsius
-HUMEDAD = 40 #En porcentaje
+HUMEDAD = 50 #En porcentaje
 PRECIPITACIONES = 2 #Milimetros
 VELOCIDAD_VIENTO = 35 #Km/hs
 
@@ -50,19 +50,19 @@ with open('datasets/sources/random-forest/Cordoba 1990-01-01 to 2023-11-07.csv')
 
             #Aplico condiciones para comenzar a contabilizar
             temp_max_value = float(row[2]) if row[2] != "" else 0
-            if temp_max_value > TEMPERATURA_MAXIMA and temp_max_value != 0:
+            if temp_max_value >= TEMPERATURA_MAXIMA and temp_max_value != 0:
                 temp_max_count+=1
 
             humedad = float(row[9]) if row[9] != "" else 0
-            if humedad <= HUMEDAD and humedad != 0:
+            if humedad < HUMEDAD and humedad != 0:
                 humedad_count+=1
 
             precipitaciones = float(row[10]) if row[10] != "" else 0
-            if precipitaciones > PRECIPITACIONES and precipitaciones != 0:
+            if precipitaciones < PRECIPITACIONES:
                 precipitaciones_count+=1
 
             velocidad_viento = float(row[17]) if row[17] != "" else 0
-            if velocidad_viento > VELOCIDAD_VIENTO and velocidad_viento != 0:
+            if velocidad_viento >= VELOCIDAD_VIENTO and velocidad_viento != 0:
                 velocidad_viento_count+=1
             
             #Si el mes cambia guardo la informacion en un objeto de contadores y la fecha (contadores_x_mes)
@@ -106,8 +106,6 @@ for contadores_x_mes in contadores_meteorologicos:
     getcontext().prec = 20
     #Los transformo a decimal y los multiplico para sacar el indice de probabilidad     
     indice_probabilidad = (PONDERACION_TEMPERATURA * Decimal(factor_temperatura)) + (PONDERACION_HUMEDAD * Decimal(factor_humedad)) + (PONDERACION_PRECIPITACION * Decimal(factor_precipitaciones)) + (PONDERACION_VIENTO * Decimal(factor_viento))
-
-
 
     #Se redondea el indice de probabilidad con una precision de 4 decimales.
     indice_incedio = round(indice_probabilidad,4)
