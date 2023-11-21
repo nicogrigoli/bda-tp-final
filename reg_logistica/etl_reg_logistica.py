@@ -91,7 +91,7 @@ def create_grafico_hectareas_cordoba_mes(datos_incendios_mes):
     plt.cla()
 
 
-def create_grafico_riesgo_incendio(datos_finales, q1, q3):
+def create_grafico_riesgo_incendio(datos_finales, q1, q3, p1, p99):
     df = pd.DataFrame(datos_finales)
 
     # order by 'surface_burnt'
@@ -125,10 +125,14 @@ def create_grafico_riesgo_incendio(datos_finales, q1, q3):
 
     plt.hlines(y=q1, xmin=0, xmax=len(datos_finales), colors='blue', linestyles='dashed', lw=0.5, label='P50 = ' + str("{:.0f}".format(q1)) + ' hectareas afectadas')
     plt.hlines(y=q3, xmin=0, xmax=len(datos_finales), colors='blue', linestyles='solid', lw=0.5, label='P85 = ' + str("{:.0f}".format(q3)) + ' hectareas afectadas')
+    plt.hlines(y=p1, xmin=0, xmax=len(datos_finales), colors='red', linestyles='solid', lw=0.5, label='P1 = ' + str("{:.0f}".format(p1)) + ' hectareas afectadas')
+    plt.hlines(y=p99, xmin=0, xmax=len(datos_finales), colors='red', linestyles='solid', lw=0.5, label='P99 = ' + str("{:.0f}".format(p99)) + ' hectareas afectadas')
+
 
     ax.set_xlabel('Observaciones mensuales ordenadas por hectáreas afectadas')
     ax.set_ylabel('Cantidad hectáreas afectadas')
     ax.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+    
 
     plt.margins(x=0)
     plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
@@ -299,7 +303,15 @@ for dato in datos_finales:
         dato['riesgo_incendio'] = 'alto'
         dato['riesgo_incendio_num'] = 3
 
-create_grafico_riesgo_incendio(datos_finales, q1, q3)
+p1 = numpy.percentile(hectareas_quemadas, 1)
+p99 = numpy.percentile(hectareas_quemadas, 99)
+
+create_grafico_riesgo_incendio(datos_finales, q1, q3, p1, p99)
+
+print('Cantidad de registros: ', len(datos_finales))
+
+datos_finales = list(filter(lambda x: x['hectareas_bosques_nativos'] > p1 and x['hectareas_bosques_nativos'] < p99, datos_finales))
+print('Cantidad de registros filtrados: ', len(datos_finales))
 
 print('Cantidad de bajos: ', len(
     list(filter(lambda x: x['riesgo_incendio'] == 'bajo', datos_finales))))
